@@ -1,17 +1,20 @@
 # thoth-feeds
 
-JSON feeds for Open Access books on [Thoth](https://github.com/thoth-pub/thoth).
+JSON feeds for Open Access books on [Thoth](https://thoth.pub/).
 
 ## Usage
 
 `thoth-feeds` is hosted at https://us-central1-arxiv-feeds.cloudfunctions.net/thoth-feeds.
 
-You can filter the feed by adding a `filter` URL parameter:
+Filter the feed by adding a `filter` URL parameter:
 
 ```
 https://us-central1-arxiv-feeds.cloudfunctions.net/thoth-feeds?filter=Object
 ```
 
+From Thoth's GraphQL API documentation for the `filter` argument:
+
+> A query string to search. This argument is a test, do not rely on it. At present it simply searches for case insensitive literals on full_title, doi, reference, short_abstract, long_abstract, and landing_page.
 
 ## Notes
 
