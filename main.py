@@ -51,16 +51,25 @@ def work_to_item(work: dict) -> jf.Item:
     return jf.Item(work['doi'])
 
 
+# TODO: define some logging constructor that includes the trace.
+
+
 def main(request: Request):
     # TODO: use logging
     print(json.dumps(dict(
-        severity="INFO",
-        message="Serving feed",
+        severity='INFO',
+        message='Receibed request',
         request_url=request.url,
         trace_header=request.headers.get('X-Cloud-Trace-Context')
     )))
     # TODO: convert limit arg to int.
     result = client.execute(recents, variable_values=request.args)
+    print(json.dumps(dict(
+        severity='INFO',
+        message='Serving feed with {} items'.format(len(result['works'])),
+        request_url=request.url,
+        trace_header=request.headers.get('X-Cloud-Trace-Context')
+    )))
     feed = jf.Feed(
         "Thoth",  # TODO: add query if there is some.
         home_page_url="https://thoth.pub/",
