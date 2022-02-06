@@ -1,3 +1,4 @@
-gql==3.0.0
 Flask==1.1.2
+gql==3.0.0
 git+git://github.com/lukasschwab/jsonfeed.git#egg=jsonfeed==0.1.9
+maya==0.6.1

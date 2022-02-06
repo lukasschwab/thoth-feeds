@@ -1,4 +1,6 @@
 import json
+from typing import Union
+import maya
 from flask import Request
 
 from gql import Client, gql
@@ -16,7 +18,7 @@ client = Client(transport=transport, fetch_schema_from_transport=True)
 recents = gql("""
     query recents($filter: String, $limit: Int = 20) {
         works(
-            order: {field: PUBLICATION_DATE, direction: ASC},
+            order: {field: PUBLICATION_DATE, direction: DESC},
             workStatus: ACTIVE,
             limit: $limit,
             filter: $filter
@@ -24,6 +26,7 @@ recents = gql("""
             workType
             fullTitle
             publicationDate
+            shortAbstract
             longAbstract
             doi
             coverUrl
@@ -35,7 +38,6 @@ recents = gql("""
                 }
             }
             contributions {
-                contributionType
                 fullName
             }
             subjects(subjectTypes:KEYWORD) {
@@ -46,16 +48,45 @@ recents = gql("""
 """)
 
 
-# TODO: fill out all the other fields.
 def work_to_item(work: dict) -> jf.Item:
-    return jf.Item(work['doi'])
+    publication_date = work.get('publicationDate')
+    date_published = maya.parse(publication_date).rfc3339() if publication_date else None
+    attachments = [to_attachment(publication) for publication in work.get('publications', [])]
+    return jf.Item(
+        work.get('doi'),
+        url=work.get('doi'),
+        title=work.get('fullTitle'),
+        content_text=work.get('longAbstract'),
+        summary=work.get('shortAbstract'),
+        image=work.get('coverUrl'),
+        banner_image=work.get('coverUrl'),
+        date_published=date_published,
+        authors=[jf.Author(author.get('fullName')) for author in work.get('contributions', [])],
+        tags=[subject.get('subjectCode') for subject in work.get('subjects', [])],
+        attachments=list(filter(None, attachments)),
+    )
+
+
+def to_attachment(publication: dict) -> Union[jf.Attachment, None]:
+    publication_type_to_mime_type = {
+        'HTML': 'text/html',
+        'PDF': 'application/pdf',
+        'EPUB': 'application/epub+zip',
+    }
+    locations = publication.get('locations')
+    publication_type = publication.get('publicationType')
+    if len(locations) == 0 or publication_type not in publication_type_to_mime_type:
+        return None
+    return jf.Attachment(
+        url=locations.pop().get('fullTextUrl'),
+        mime_type=publication_type_to_mime_type[publication_type]
+    )
 
 
 # TODO: define some logging constructor that includes the trace.
 
 
 def main(request: Request):
-    # TODO: use logging
     print(json.dumps(dict(
         severity='INFO',
         message='Receibed request',
@@ -70,12 +101,18 @@ def main(request: Request):
         request_url=request.url,
         trace_header=request.headers.get('X-Cloud-Trace-Context')
     )))
+
+    title = 'Thoth'
+    description = 'Open Access books on Thoth'
+    if 'filter' in request.args:
+        title = '{}: "{}"'.format(title, request.args['filter'])
+        description = '{} for the filter "{}"'.format(description, request.args['filter'])
+
     feed = jf.Feed(
-        "Thoth",  # TODO: add query if there is some.
+        title,
         home_page_url="https://thoth.pub/",
-        feed_url="",  # TODO: get from request
-        description="Open Access books on Thoth",
-        # TODO: support next_url for pagination.
+        feed_url=request.url,
+        description=description,
         icon="https://thoth.pub/apple-icon-180x180.png",
         favicon="https://thoth.pub/favicon-96x96.png",
         items=[work_to_item(work) for work in result['works']],
