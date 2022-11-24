@@ -1,7 +1,8 @@
 import json
 from typing import Union
 import maya
-from flask import Request
+from flask import Request, Response
+import functions_framework
 
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
@@ -86,10 +87,11 @@ def to_attachment(publication: dict) -> Union[jf.Attachment, None]:
 # TODO: define some logging constructor that includes the trace.
 
 
+@functions_framework.http
 def main(request: Request):
     print(json.dumps(dict(
         severity='INFO',
-        message='Receibed request',
+        message='Received request',
         request_url=request.url,
         trace_header=request.headers.get('X-Cloud-Trace-Context')
     )))
@@ -117,4 +119,5 @@ def main(request: Request):
         favicon="https://thoth.pub/favicon-96x96.png",
         items=[work_to_item(work) for work in result['works']],
     )
-    return feed.toJSON()
+
+    return Response(feed.to_json(), content_type='application/json; charset=utf-8')
