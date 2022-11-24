@@ -20,6 +20,7 @@ recents = gql("""
     query recents($filter: String, $limit: Int = 20) {
         works(
             order: {field: PUBLICATION_DATE, direction: DESC},
+            workTypes: [MONOGRAPH, EDITED_BOOK, TEXTBOOK, JOURNAL_ISSUE, BOOK_SET],
             workStatus: ACTIVE,
             limit: $limit,
             filter: $filter
